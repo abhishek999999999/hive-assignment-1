@@ -1,0 +1,807 @@
+HIVE-Assignment
+
+
+#Create a internal hive table "sales_order_csv" which will store csv data sales_order_csv .. make sure to skip header row while creating table
+        
+hive>  create database hive_db;
+OK
+Time taken: 1.476 seconds
+hive> use hive_db;
+OK
+Time taken: 0.032 seconds
+hive> create table sales_order_csv( ORDERNUMBER int, QUANTITYORDERED int, PRICEEACH float, ORDERLINENUMBER int, SALES float, STATUS string, QTR_ID int, MONTH_ID int, YEAR_ID int, PRODUCTLINE string, MSRP int, PRODUCTCODE string, PHONE string, CITY string, STATE string, POSTALCODE string, COUNTRY string, TERRITORY string, CONTACTLASTNAME string, CONTACTFIRSTNAME string, DEALSIZE string ) row format delimited fields terminated by ',' tblproperties("skip.header.line.count"="1") ;
+OK
+Time taken: 0.765 seconds
+
+#Load data from hdfs path into "sales_order_csv"
+
+
+hive>  load data local inpath 'file:///config/workspace/sales_order_data.csv' into table sales_order_csv;
+Loading data to table hive_db.sales_order_csv
+OK
+Time taken: 1.584 seconds
+hive>  select * from  sales_order_csv limit 5;
+OK
+10107   30      95.7    2       2871.0  Shipped 1       2       2003    Motorcycles     95      S10_1678        2125557818      NYC     NY      10022   USA     NA      Yu      Kwai    Small
+10121   34      81.35   5       2765.9  Shipped 2       5       2003    Motorcycles     95      S10_1678        26.47.1555      Reims           51100   France  EMEA    Henriot Paul    Small
+10134   41      94.74   2       3884.34 Shipped 3       7       2003    Motorcycles     95      S10_1678        +33 1 46 62 7555        Paris           75508   France  EMEA    Da Cunha        Daniel  Medium
+10145   45      83.26   6       3746.7  Shipped 3       8       2003    Motorcycles     95      S10_1678        6265557265      Pasadena        CA      90003   USA     NA      Young   Julie   Medium
+10159   49      100.0   14      5205.27 Shipped 4       10      2003    Motorcycles     95      S10_1678        6505551386      San Francisco   CA              USA     NA      Brown   Julie   Medium
+Time taken: 1.662 seconds, Fetched: 5 row(s)
+
+#Create an internal hive table which will store data in ORC format "sales_order_data_orc"
+
+
+hive>  create table sales_order_data_orc ( ORDERNUMBER int, QUANTITYORDERED int, PRICEEACH float, ORDERLINENUMBER int, SALES float, STATUS string, QTR_ID int, MONTH_ID int, YEAR_ID int, PRODUCTLINE string, MSRP int, PRODUCTCODE string, PHONE string, CITY string, STATE string, POSTALCODE string, COUNTRY string, TERRITORY string, CONTACTLASTNAME string, CONTACTFIRSTNAME string, DEALSIZE string ) stored as orc;
+OK
+Time taken: 0.129 seconds
+
+#Load data from "sales_order_csv" into "sales_order_orc"
+
+
+hive>  from sales_order_csv insert overwrite table sales_order_data_orc select *;
+Query ID = abc_20230514154101_e740d1db-ac41-4e11-b2d2-9f1881281df6
+Total jobs = 1
+Launching Job 1 out of 1
+Number of reduce tasks determined at compile time: 1
+In order to change the average load for a reducer (in bytes):
+  set hive.exec.reducers.bytes.per.reducer=<number>
+In order to limit the maximum number of reducers:
+  set hive.exec.reducers.max=<number>
+In order to set a constant number of reducers:
+  set mapreduce.job.reduces=<number>
+Starting Job = job_1684058734835_0001, Tracking URL = http://141829e0d26e:8088/proxy/application_1684058734835_0001/
+Kill Command = /usr/local/hadoop/bin/mapred job  -kill job_1684058734835_0001
+Hadoop job information for Stage-1: number of mappers: 1; number of reducers: 1
+2023-05-14 15:41:14,655 Stage-1 map = 0%,  reduce = 0%
+2023-05-14 15:41:22,900 Stage-1 map = 100%,  reduce = 0%, Cumulative CPU 10.77 sec
+2023-05-14 15:41:29,074 Stage-1 map = 100%,  reduce = 100%, Cumulative CPU 12.98 sec
+MapReduce Total cumulative CPU time: 12 seconds 980 msec
+Ended Job = job_1684058734835_0001
+Stage-4 is selected by condition resolver.
+Stage-3 is filtered out by condition resolver.
+Stage-5 is filtered out by condition resolver.
+Moving data to directory hdfs://localhost/user/hive/warehouse/hive_db.db/sales_order_data_orc/.hive-staging_hive_2023-05-14_15-41-01_590_5546568535337910515-1/-ext-10000
+Loading data to table hive_db.sales_order_data_orc
+MapReduce Jobs Launched: 
+Stage-Stage-1: Map: 1  Reduce: 1   Cumulative CPU: 12.98 sec   HDFS Read: 400433 HDFS Write: 50366 SUCCESS
+Total MapReduce CPU Time Spent: 12 seconds 980 msec
+OK
+Time taken: 30.298 seconds
+hive>  select * from  sales_order_data_orc limit 5;
+OK
+10107   30      95.7    2       2871.0  Shipped 1       2       2003    Motorcycles     95      S10_1678        2125557818      NYC     NY      10022   USA     NA      Yu      Kwai    Small
+10121   34      81.35   5       2765.9  Shipped 2       5       2003    Motorcycles     95      S10_1678        26.47.1555      Reims           51100   France  EMEA    Henriot Paul    Small
+10134   41      94.74   2       3884.34 Shipped 3       7       2003    Motorcycles     95      S10_1678        +33 1 46 62 7555        Paris           75508   France  EMEA    Da Cunha        Daniel  Medium
+10145   45      83.26   6       3746.7  Shipped 3       8       2003    Motorcycles     95      S10_1678        6265557265      Pasadena        CA      90003   USA     NA      Young   Julie   Medium
+10159   49      100.0   14      5205.27 Shipped 4       10      2003    Motorcycles     95      S10_1678        6505551386      San Francisco   CA              USA     NA      Brown   Julie   Medium
+Time taken: 0.188 seconds, Fetched: 5 row(s)
+hive> set hive.cli.print.header = true;
+
+a. Calculatye total sales per year
+-->
+
+ select YEAR_ID as Year,SUM(SALES) as total_sales_per_year from sales_order_data_orc group by YEAR_ID;
+Query ID = abc_20230514154551_86dc7c56-a813-44d0-b582-1bde2d236b4c
+Total jobs = 1
+Launching Job 1 out of 1
+Number of reduce tasks not specified. Estimated from input data size: 1
+In order to change the average load for a reducer (in bytes):
+  set hive.exec.reducers.bytes.per.reducer=<number>
+In order to limit the maximum number of reducers:
+  set hive.exec.reducers.max=<number>
+In order to set a constant number of reducers:
+  set mapreduce.job.reduces=<number>
+Starting Job = job_1684058734835_0002, Tracking URL = http://141829e0d26e:8088/proxy/application_1684058734835_0002/
+Kill Command = /usr/local/hadoop/bin/mapred job  -kill job_1684058734835_0002
+Hadoop job information for Stage-1: number of mappers: 1; number of reducers: 1
+2023-05-14 15:46:02,861 Stage-1 map = 0%,  reduce = 0%
+2023-05-14 15:46:10,035 Stage-1 map = 100%,  reduce = 0%, Cumulative CPU 2.22 sec
+2023-05-14 15:46:16,174 Stage-1 map = 100%,  reduce = 100%, Cumulative CPU 4.52 sec
+MapReduce Total cumulative CPU time: 4 seconds 520 msec
+Ended Job = job_1684058734835_0002
+MapReduce Jobs Launched: 
+Stage-Stage-1: Map: 1  Reduce: 1   Cumulative CPU: 4.52 sec   HDFS Read: 44123 HDFS Write: 193 SUCCESS
+Total MapReduce CPU Time Spent: 4 seconds 520 msec
+OK
+year    total_sales_per_year
+2003    3516979.547241211
+2004    4724162.593383789
+2005    1791486.7086791992
+Time taken: 26.836 seconds, Fetched: 3 row(s)
+
+b. Find a product for which maximum orders were placed
+
+-->
+
+hive> select SUM(QUANTITYORDERED) as Total_Qantity,PRODUCTLINE as Max_order_Product from sales_order_data_orc group by PRODUCTLINE order by Total_Qantity desc limit 1;
+Query ID = abc_20230514154725_5249ce2b-8265-42da-b1a8-766e47455710
+Total jobs = 2
+Launching Job 1 out of 2
+Number of reduce tasks not specified. Estimated from input data size: 1
+In order to change the average load for a reducer (in bytes):
+  set hive.exec.reducers.bytes.per.reducer=<number>
+In order to limit the maximum number of reducers:
+  set hive.exec.reducers.max=<number>
+In order to set a constant number of reducers:
+  set mapreduce.job.reduces=<number>
+Starting Job = job_1684058734835_0003, Tracking URL = http://141829e0d26e:8088/proxy/application_1684058734835_0003/
+Kill Command = /usr/local/hadoop/bin/mapred job  -kill job_1684058734835_0003
+Hadoop job information for Stage-1: number of mappers: 1; number of reducers: 1
+2023-05-14 15:47:35,432 Stage-1 map = 0%,  reduce = 0%
+2023-05-14 15:47:42,712 Stage-1 map = 100%,  reduce = 0%, Cumulative CPU 2.44 sec
+2023-05-14 15:47:47,830 Stage-1 map = 100%,  reduce = 100%, Cumulative CPU 4.72 sec
+MapReduce Total cumulative CPU time: 4 seconds 720 msec
+Ended Job = job_1684058734835_0003
+Launching Job 2 out of 2
+Number of reduce tasks determined at compile time: 1
+In order to change the average load for a reducer (in bytes):
+  set hive.exec.reducers.bytes.per.reducer=<number>
+In order to limit the maximum number of reducers:
+  set hive.exec.reducers.max=<number>
+In order to set a constant number of reducers:
+  set mapreduce.job.reduces=<number>
+Starting Job = job_1684058734835_0004, Tracking URL = http://141829e0d26e:8088/proxy/application_1684058734835_0004/
+Kill Command = /usr/local/hadoop/bin/mapred job  -kill job_1684058734835_0004
+Hadoop job information for Stage-2: number of mappers: 1; number of reducers: 1
+2023-05-14 15:48:02,030 Stage-2 map = 0%,  reduce = 0%
+2023-05-14 15:48:09,193 Stage-2 map = 100%,  reduce = 0%, Cumulative CPU 1.88 sec
+2023-05-14 15:48:15,328 Stage-2 map = 100%,  reduce = 100%, Cumulative CPU 4.26 sec
+MapReduce Total cumulative CPU time: 4 seconds 260 msec
+Ended Job = job_1684058734835_0004
+MapReduce Jobs Launched: 
+Stage-Stage-1: Map: 1  Reduce: 1   Cumulative CPU: 4.72 sec   HDFS Read: 36042 HDFS Write: 311 SUCCESS
+Stage-Stage-2: Map: 1  Reduce: 1   Cumulative CPU: 4.26 sec   HDFS Read: 7740 HDFS Write: 118 SUCCESS
+Total MapReduce CPU Time Spent: 8 seconds 980 msec
+OK
+total_qantity   max_order_product
+33992   Classic Cars
+Time taken: 52.284 seconds, Fetched: 1 row(s)
+
+c. Calculate the total sales for each quarter
+
+-->
+
+hive> select sum(SALES) as total_sales_each_quarter,QTR_ID as Quarter from sales_order_data_orc group by QTR_ID;
+Query ID = abc_20230514154919_2bf5eb35-48cf-4418-bb15-5cee6957c73b
+Total jobs = 1
+Launching Job 1 out of 1
+Number of reduce tasks not specified. Estimated from input data size: 1
+In order to change the average load for a reducer (in bytes):
+  set hive.exec.reducers.bytes.per.reducer=<number>
+In order to limit the maximum number of reducers:
+  set hive.exec.reducers.max=<number>
+In order to set a constant number of reducers:
+  set mapreduce.job.reduces=<number>
+Starting Job = job_1684058734835_0005, Tracking URL = http://141829e0d26e:8088/proxy/application_1684058734835_0005/
+Kill Command = /usr/local/hadoop/bin/mapred job  -kill job_1684058734835_0005
+Hadoop job information for Stage-1: number of mappers: 1; number of reducers: 1
+2023-05-14 15:49:29,143 Stage-1 map = 0%,  reduce = 0%
+2023-05-14 15:49:36,291 Stage-1 map = 100%,  reduce = 0%, Cumulative CPU 2.36 sec
+2023-05-14 15:49:42,428 Stage-1 map = 100%,  reduce = 100%, Cumulative CPU 5.05 sec
+MapReduce Total cumulative CPU time: 5 seconds 50 msec
+Ended Job = job_1684058734835_0005
+MapReduce Jobs Launched: 
+Stage-Stage-1: Map: 1  Reduce: 1   Cumulative CPU: 5.05 sec   HDFS Read: 44602 HDFS Write: 216 SUCCESS
+Total MapReduce CPU Time Spent: 5 seconds 50 msec
+OK
+total_sales_each_quarter        quarter
+2350817.726501465       1
+2048120.3029174805      2
+1758910.808959961       3
+3874780.010925293       4
+Time taken: 23.579 seconds, Fetched: 4 row(s)
+
+d. In which quarter sales was minimum
+
+-->
+
+hive> select sum(SALES) as total_sales,QTR_ID as Quarter from sales_order_data_orc group by QTR_ID order by total_sales limit 1;
+Query ID = abc_20230514155035_caa9ce70-3edf-4183-9441-b7e127d4f06c
+Total jobs = 2
+Launching Job 1 out of 2
+Number of reduce tasks not specified. Estimated from input data size: 1
+In order to change the average load for a reducer (in bytes):
+  set hive.exec.reducers.bytes.per.reducer=<number>
+In order to limit the maximum number of reducers:
+  set hive.exec.reducers.max=<number>
+In order to set a constant number of reducers:
+  set mapreduce.job.reduces=<number>
+Starting Job = job_1684058734835_0006, Tracking URL = http://141829e0d26e:8088/proxy/application_1684058734835_0006/
+Kill Command = /usr/local/hadoop/bin/mapred job  -kill job_1684058734835_0006
+Hadoop job information for Stage-1: number of mappers: 1; number of reducers: 1
+2023-05-14 15:50:54,708 Stage-1 map = 0%,  reduce = 0%
+2023-05-14 15:51:10,292 Stage-1 map = 100%,  reduce = 0%, Cumulative CPU 3.81 sec
+2023-05-14 15:51:23,052 Stage-1 map = 100%,  reduce = 100%, Cumulative CPU 7.5 sec
+MapReduce Total cumulative CPU time: 7 seconds 500 msec
+Ended Job = job_1684058734835_0006
+Launching Job 2 out of 2
+Number of reduce tasks determined at compile time: 1
+In order to change the average load for a reducer (in bytes):
+  set hive.exec.reducers.bytes.per.reducer=<number>
+In order to limit the maximum number of reducers:
+  set hive.exec.reducers.max=<number>
+In order to set a constant number of reducers:
+  set mapreduce.job.reduces=<number>
+Starting Job = job_1684058734835_0007, Tracking URL = http://141829e0d26e:8088/proxy/application_1684058734835_0007/
+Kill Command = /usr/local/hadoop/bin/mapred job  -kill job_1684058734835_0007
+Hadoop job information for Stage-2: number of mappers: 1; number of reducers: 1
+2023-05-14 15:51:49,720 Stage-2 map = 0%,  reduce = 0%
+2023-05-14 15:52:03,760 Stage-2 map = 100%,  reduce = 0%, Cumulative CPU 3.32 sec
+2023-05-14 15:52:16,569 Stage-2 map = 100%,  reduce = 100%, Cumulative CPU 7.96 sec
+MapReduce Total cumulative CPU time: 7 seconds 960 msec
+Ended Job = job_1684058734835_0007
+MapReduce Jobs Launched: 
+Stage-Stage-1: Map: 1  Reduce: 1   Cumulative CPU: 7.5 sec   HDFS Read: 43775 HDFS Write: 200 SUCCESS
+Stage-Stage-2: Map: 1  Reduce: 1   Cumulative CPU: 7.96 sec   HDFS Read: 7575 HDFS Write: 119 SUCCESS
+Total MapReduce CPU Time Spent: 15 seconds 460 msec
+OK
+total_sales     quarter
+1758910.808959961       3
+Time taken: 104.513 seconds, Fetched: 1 row(s)
+
+e. In which country sales was maximum and in which country sales was minimum
+
+--> for max
+
+hive> select sum(SALES) as Total_Sales,COUNTRY from sales_order_data_orc group by COUNTRY order by Total_Sales limit 1;
+Query ID = abc_20230514155739_6c897935-147d-4174-8416-26e584316ac6
+Total jobs = 2
+Launching Job 1 out of 2
+Number of reduce tasks not specified. Estimated from input data size: 1
+In order to change the average load for a reducer (in bytes):
+  set hive.exec.reducers.bytes.per.reducer=<number>
+In order to limit the maximum number of reducers:
+  set hive.exec.reducers.max=<number>
+In order to set a constant number of reducers:
+  set mapreduce.job.reduces=<number>
+Starting Job = job_1684058734835_0008, Tracking URL = http://141829e0d26e:8088/proxy/application_1684058734835_0008/
+Kill Command = /usr/local/hadoop/bin/mapred job  -kill job_1684058734835_0008
+Hadoop job information for Stage-1: number of mappers: 1; number of reducers: 1
+2023-05-14 15:58:02,888 Stage-1 map = 0%,  reduce = 0%
+2023-05-14 15:58:17,541 Stage-1 map = 100%,  reduce = 0%, Cumulative CPU 3.64 sec
+2023-05-14 15:58:31,075 Stage-1 map = 100%,  reduce = 100%, Cumulative CPU 7.19 sec
+MapReduce Total cumulative CPU time: 7 seconds 190 msec
+Ended Job = job_1684058734835_0008
+Launching Job 2 out of 2
+Number of reduce tasks determined at compile time: 1
+In order to change the average load for a reducer (in bytes):
+  set hive.exec.reducers.bytes.per.reducer=<number>
+In order to limit the maximum number of reducers:
+  set hive.exec.reducers.max=<number>
+In order to set a constant number of reducers:
+  set mapreduce.job.reduces=<number>
+Starting Job = job_1684058734835_0009, Tracking URL = http://141829e0d26e:8088/proxy/application_1684058734835_0009/
+Kill Command = /usr/local/hadoop/bin/mapred job  -kill job_1684058734835_0009
+Hadoop job information for Stage-2: number of mappers: 1; number of reducers: 1
+2023-05-14 15:58:57,825 Stage-2 map = 0%,  reduce = 0%
+2023-05-14 15:59:12,848 Stage-2 map = 100%,  reduce = 0%, Cumulative CPU 2.79 sec
+2023-05-14 15:59:24,922 Stage-2 map = 100%,  reduce = 100%, Cumulative CPU 6.44 sec
+MapReduce Total cumulative CPU time: 6 seconds 440 msec
+Ended Job = job_1684058734835_0009
+MapReduce Jobs Launched: 
+Stage-Stage-1: Map: 1  Reduce: 1   Cumulative CPU: 7.19 sec   HDFS Read: 44607 HDFS Write: 716 SUCCESS
+Stage-Stage-2: Map: 1  Reduce: 1   Cumulative CPU: 6.44 sec   HDFS Read: 8125 HDFS Write: 125 SUCCESS
+Total MapReduce CPU Time Spent: 13 seconds 630 msec
+OK
+total_sales     country
+57756.43029785156       Ireland
+Time taken: 109.01 seconds, Fetched: 1 row(s)
+
+ for min
+
+
+hive>  select sum(SALES) as Total_Sales,COUNTRY from sales_order_data_orc group by COUNTRY order by Total_Sales desc limit 1;
+Query ID = abc_20230514155958_dc72c47f-23b4-4d0c-adb2-ddb10a3d92d7
+Total jobs = 2
+Launching Job 1 out of 2
+Number of reduce tasks not specified. Estimated from input data size: 1
+In order to change the average load for a reducer (in bytes):
+  set hive.exec.reducers.bytes.per.reducer=<number>
+In order to limit the maximum number of reducers:
+  set hive.exec.reducers.max=<number>
+In order to set a constant number of reducers:
+  set mapreduce.job.reduces=<number>
+Starting Job = job_1684058734835_0010, Tracking URL = http://141829e0d26e:8088/proxy/application_1684058734835_0010/
+Kill Command = /usr/local/hadoop/bin/mapred job  -kill job_1684058734835_0010
+Hadoop job information for Stage-1: number of mappers: 1; number of reducers: 1
+2023-05-14 16:00:19,840 Stage-1 map = 0%,  reduce = 0%
+2023-05-14 16:00:35,793 Stage-1 map = 100%,  reduce = 0%, Cumulative CPU 3.96 sec
+2023-05-14 16:00:47,763 Stage-1 map = 100%,  reduce = 100%, Cumulative CPU 7.19 sec
+MapReduce Total cumulative CPU time: 7 seconds 190 msec
+Ended Job = job_1684058734835_0010
+Launching Job 2 out of 2
+Number of reduce tasks determined at compile time: 1
+In order to change the average load for a reducer (in bytes):
+  set hive.exec.reducers.bytes.per.reducer=<number>
+In order to limit the maximum number of reducers:
+  set hive.exec.reducers.max=<number>
+In order to set a constant number of reducers:
+  set mapreduce.job.reduces=<number>
+Starting Job = job_1684058734835_0011, Tracking URL = http://141829e0d26e:8088/proxy/application_1684058734835_0011/
+Kill Command = /usr/local/hadoop/bin/mapred job  -kill job_1684058734835_0011
+Hadoop job information for Stage-2: number of mappers: 1; number of reducers: 1
+2023-05-14 16:01:16,300 Stage-2 map = 0%,  reduce = 0%
+2023-05-14 16:01:31,673 Stage-2 map = 100%,  reduce = 0%, Cumulative CPU 3.22 sec
+2023-05-14 16:01:44,326 Stage-2 map = 100%,  reduce = 100%, Cumulative CPU 6.95 sec
+MapReduce Total cumulative CPU time: 6 seconds 950 msec
+Ended Job = job_1684058734835_0011
+MapReduce Jobs Launched: 
+Stage-Stage-1: Map: 1  Reduce: 1   Cumulative CPU: 7.19 sec   HDFS Read: 44607 HDFS Write: 716 SUCCESS
+Stage-Stage-2: Map: 1  Reduce: 1   Cumulative CPU: 6.95 sec   HDFS Read: 8125 HDFS Write: 121 SUCCESS
+Total MapReduce CPU Time Spent: 14 seconds 140 msec
+OK
+total_sales     country
+3627982.825744629       USA
+
+
+f. Calculate quartelry sales for each city
+
+-->
+hive>  select city, qtr_id, ROUND(SUM(sales), 3) as total_sales_per_quarter_for_city
+    >     from sales_order_data_orc
+    >     group by city, qtr_id
+    >     order by city, qtr_id;
+Query ID = abc_20230517112555_e1668ff5-6756-49bd-a1ad-601aef647a2c
+Total jobs = 2
+Launching Job 1 out of 2
+Number of reduce tasks not specified. Estimated from input data size: 1
+In order to change the average load for a reducer (in bytes):
+  set hive.exec.reducers.bytes.per.reducer=<number>
+In order to limit the maximum number of reducers:
+  set hive.exec.reducers.max=<number>
+In order to set a constant number of reducers:
+  set mapreduce.job.reduces=<number>
+Starting Job = job_1684302233293_0009, Tracking URL = http://b5d67325fcdd:8088/proxy/application_1684302233293_0009/
+Kill Command = /usr/local/hadoop/bin/mapred job  -kill job_1684302233293_0009
+Hadoop job information for Stage-1: number of mappers: 1; number of reducers: 1
+2023-05-17 11:26:04,352 Stage-1 map = 0%,  reduce = 0%
+2023-05-17 11:26:11,494 Stage-1 map = 100%,  reduce = 0%, Cumulative CPU 2.48 sec
+2023-05-17 11:26:17,619 Stage-1 map = 100%,  reduce = 100%, Cumulative CPU 6.16 sec
+MapReduce Total cumulative CPU time: 6 seconds 160 msec
+Ended Job = job_1684302233293_0009
+Launching Job 2 out of 2
+Number of reduce tasks determined at compile time: 1
+In order to change the average load for a reducer (in bytes):
+  set hive.exec.reducers.bytes.per.reducer=<number>
+In order to limit the maximum number of reducers:
+  set hive.exec.reducers.max=<number>
+In order to set a constant number of reducers:
+  set mapreduce.job.reduces=<number>
+Starting Job = job_1684302233293_0010, Tracking URL = http://b5d67325fcdd:8088/proxy/application_1684302233293_0010/
+Kill Command = /usr/local/hadoop/bin/mapred job  -kill job_1684302233293_0010
+Hadoop job information for Stage-2: number of mappers: 1; number of reducers: 1
+2023-05-17 11:26:30,537 Stage-2 map = 0%,  reduce = 0%
+2023-05-17 11:26:37,681 Stage-2 map = 100%,  reduce = 0%, Cumulative CPU 1.84 sec
+2023-05-17 11:26:43,802 Stage-2 map = 100%,  reduce = 100%, Cumulative CPU 4.07 sec
+MapReduce Total cumulative CPU time: 4 seconds 70 msec
+Ended Job = job_1684302233293_0010
+MapReduce Jobs Launched: 
+Stage-Stage-1: Map: 1  Reduce: 1   Cumulative CPU: 6.16 sec   HDFS Read: 46117 HDFS Write: 6468 SUCCESS
+Stage-Stage-2: Map: 1  Reduce: 1   Cumulative CPU: 4.07 sec   HDFS Read: 14353 HDFS Write: 5917 SUCCESS
+Total MapReduce CPU Time Spent: 10 seconds 230 msec
+OK
+Aaarhus 4       100595.55
+Allentown       2       6166.8
+Allentown       3       71930.61
+Allentown       4       44040.73
+Barcelona       2       4219.2
+Barcelona       4       74192.66
+Bergamo 1       56181.32
+Bergamo 4       81774.4
+Bergen  3       16363.1
+Bergen  4       95277.18
+Boras   1       31606.72
+Boras   3       53941.69
+Boras   4       48710.921
+Boston  2       74994.24
+Boston  3       15344.64
+Boston  4       63730.78
+Brickhaven      1       31474.78
+Brickhaven      2       7277.35
+Brickhaven      3       114974.54
+Brickhaven      4       11528.53
+Bridgewater     2       75778.991
+Bridgewater     4       26115.801
+Brisbane        1       16118.48
+Brisbane        3       34100.03
+Bruxelles       1       18800.09
+Bruxelles       2       8411.95
+Bruxelles       3       47760.48
+Burbank 1       37850.08
+Burbank 4       8234.56
+Burlingame      1       13529.57
+Burlingame      3       42031.83
+Burlingame      4       65221.67
+Cambridge       1       21782.7
+Cambridge       2       14380.92
+Cambridge       3       48828.719
+Cambridge       4       54251.66
+Charleroi       1       16628.16
+Charleroi       2       1711.26
+Charleroi       3       1637.2
+Charleroi       4       13463.48
+Chatswood       2       43971.43
+Chatswood       3       69694.4
+Chatswood       4       37905.15
+Cowes   1       26906.68
+Cowes   4       51334.16
+Dublin  1       38784.47
+Dublin  3       18971.96
+Espoo   1       51373.491
+Espoo   2       31018.23
+Espoo   3       31569.43
+Frankfurt       1       48698.829
+Frankfurt       4       36472.76
+Gensve  1       50432.55
+Gensve  3       67281.009
+Glen Waverly    2       14378.09
+Glen Waverly    3       12334.82
+Glen Waverly    4       37878.55
+Glendale        1       3987.2
+Glendale        2       20350.95
+Glendale        3       7600.12
+Glendale        4       34485.5
+Graz    1       8775.16
+Graz    4       43488.74
+Helsinki        1       26422.819
+Helsinki        3       42744.06
+Helsinki        4       42083.5
+Kobenhavn       1       58871.11
+Kobenhavn       2       62091.881
+Kobenhavn       4       24078.61
+Koln    4       100306.58
+Las Vegas       2       33847.62
+Las Vegas       3       34453.85
+Las Vegas       4       14449.61
+Lille   1       20178.13
+Lille   4       48874.281
+Liverpool       2       91211.06
+Liverpool       4       26797.21
+London  1       8477.22
+London  2       32376.291
+London  4       83970.029
+Los Angeles     1       23889.32
+Los Angeles     4       24159.14
+Lule    1       9749.0
+Lule    4       66005.88
+Lyon    1       101339.14
+Lyon    4       41535.11
+Madrid  1       357668.49
+Madrid  2       339588.051
+Madrid  3       69714.09
+Madrid  4       315580.81
+Makati City     1       55245.02
+Makati City     4       38770.71
+Manchester      1       51017.92
+Manchester      4       106789.89
+Marseille       1       2317.44
+Marseille       2       52481.84
+Marseille       4       20136.86
+Melbourne       1       49637.571
+Melbourne       2       60135.84
+Melbourne       4       91221.999
+Minato-ku       1       38191.39
+Minato-ku       2       26482.7
+Minato-ku       4       55888.65
+Montreal        2       58257.5
+Montreal        4       15947.29
+Munich  3       34993.92
+NYC     1       32647.81
+NYC     2       165100.339
+NYC     3       63027.92
+NYC     4       300011.7
+Nantes  1       59617.4
+Nantes  2       60344.99
+Nantes  3       61310.88
+Nantes  4       23031.59
+Nashua  1       12133.25
+Nashua  4       119552.049
+New Bedford     1       48578.959
+New Bedford     3       45738.39
+New Bedford     4       113557.51
+New Haven       2       36973.31
+New Haven       4       42498.76
+Newark  1       8722.12
+Newark  2       74506.069
+North Sydney    1       65012.42
+North Sydney    3       47191.76
+North Sydney    4       41791.949
+Osaka   1       50490.64
+Osaka   2       17114.43
+Oslo    3       34145.47
+Oslo    4       45078.76
+Oulu    1       49055.4
+Oulu    2       17813.4
+Oulu    3       37501.58
+Paris   1       71494.179
+Paris   2       80215.42
+Paris   3       27798.48
+Paris   4       89436.6
+Pasadena        1       44273.359
+Pasadena        3       55776.12
+Pasadena        4       4512.48
+Philadelphia    1       27398.82
+Philadelphia    2       7287.24
+Philadelphia    4       116503.07
+Reggio Emilia   2       41509.94
+Reggio Emilia   3       56421.65
+Reggio Emilia   4       44669.74
+Reims   1       52029.07
+Reims   2       18971.96
+Reims   3       15146.32
+Reims   4       48895.59
+Salzburg        2       98104.24
+Salzburg        3       6693.28
+Salzburg        4       45001.11
+San Diego       1       87489.23
+San Francisco   1       72899.2
+San Francisco   4       151459.481
+San Jose        2       160010.27
+San Rafael      1       267315.259
+San Rafael      2       7261.75
+San Rafael      3       216297.401
+San Rafael      4       163983.649
+Sevilla 4       54723.621
+Singapore       1       28395.19
+Singapore       2       92033.77
+Singapore       3       90250.08
+Singapore       4       77809.37
+South Brisbane  1       21730.03
+South Brisbane  3       10640.29
+South Brisbane  4       27098.8
+Stavern 1       54702.0
+Stavern 4       61897.19
+Strasbourg      2       80438.48
+Torino  3       94117.26
+Toulouse        1       15139.12
+Toulouse        3       17251.081
+Toulouse        4       38098.24
+Tsawassen       2       31302.5
+Tsawassen       3       43332.35
+Vancouver       4       75238.92
+Versailles      1       5759.42
+Versailles      4       59074.9
+White Plains    4       85555.99
+Time taken: 50.376 seconds, Fetched: 182 row(s)
+hive> 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ select country, ROUND(SUM(sales), 3) as total_sales_per_country
+    from sales_order_data_orc
+    group by country
+    order by total_sales_per_country;
+
+-->  hive>   select country, ROUND(SUM(sales), 3) as total_sales_per_country
+    >     from sales_order_data_orc
+    >     group by country
+    >     order by total_sales_per_country;
+Query ID = abc_20230517112325_b11833f6-abcc-42f6-8f38-72ac8d52f9ff
+Total jobs = 2
+Launching Job 1 out of 2
+Number of reduce tasks not specified. Estimated from input data size: 1
+In order to change the average load for a reducer (in bytes):
+  set hive.exec.reducers.bytes.per.reducer=<number>
+In order to limit the maximum number of reducers:
+  set hive.exec.reducers.max=<number>
+In order to set a constant number of reducers:
+  set mapreduce.job.reduces=<number>
+Starting Job = job_1684302233293_0007, Tracking URL = http://b5d67325fcdd:8088/proxy/application_1684302233293_0007/
+Kill Command = /usr/local/hadoop/bin/mapred job  -kill job_1684302233293_0007
+Hadoop job information for Stage-1: number of mappers: 1; number of reducers: 1
+2023-05-17 11:23:35,271 Stage-1 map = 0%,  reduce = 0%
+2023-05-17 11:23:42,411 Stage-1 map = 100%,  reduce = 0%, Cumulative CPU 2.4 sec
+2023-05-17 11:23:48,529 Stage-1 map = 100%,  reduce = 100%, Cumulative CPU 5.95 sec
+MapReduce Total cumulative CPU time: 5 seconds 950 msec
+Ended Job = job_1684302233293_0007
+Launching Job 2 out of 2
+Number of reduce tasks determined at compile time: 1
+In order to change the average load for a reducer (in bytes):
+  set hive.exec.reducers.bytes.per.reducer=<number>
+In order to limit the maximum number of reducers:
+  set hive.exec.reducers.max=<number>
+In order to set a constant number of reducers:
+  set mapreduce.job.reduces=<number>
+Starting Job = job_1684302233293_0008, Tracking URL = http://b5d67325fcdd:8088/proxy/application_1684302233293_0008/
+Kill Command = /usr/local/hadoop/bin/mapred job  -kill job_1684302233293_0008
+Hadoop job information for Stage-2: number of mappers: 1; number of reducers: 1
+2023-05-17 11:24:01,642 Stage-2 map = 0%,  reduce = 0%
+2023-05-17 11:24:08,787 Stage-2 map = 100%,  reduce = 0%, Cumulative CPU 1.64 sec
+2023-05-17 11:24:14,917 Stage-2 map = 100%,  reduce = 100%, Cumulative CPU 3.98 sec
+MapReduce Total cumulative CPU time: 3 seconds 980 msec
+Ended Job = job_1684302233293_0008
+MapReduce Jobs Launched: 
+Stage-Stage-1: Map: 1  Reduce: 1   Cumulative CPU: 5.95 sec   HDFS Read: 44772 HDFS Write: 716 SUCCESS
+Stage-Stage-2: Map: 1  Reduce: 1   Cumulative CPU: 3.98 sec   HDFS Read: 8008 HDFS Write: 659 SUCCESS
+Total MapReduce CPU Time Spent: 9 seconds 930 msec
+OK
+Ireland 57756.43
+Philippines     94015.73
+Belgium 108412.62
+Switzerland     117713.559
+Japan   188167.811
+Austria 202062.53
+Sweden  210014.21
+Germany 220472.09
+Canada  224078.56
+Denmark 245637.151
+Singapore       288488.41
+Norway  307463.7
+Finland 329581.91
+Italy   374674.311
+UK      478880.459
+Australia       630623.099
+France  1110916.522
+Spain   1215686.922
+USA     3627982.826
+Time taken: 50.747 seconds, Fetched: 19 row(s)
+
+
+
+h. Find a month for each year in which maximum number of quantities were sold
+
+-->  
+ hive> create table table_1
+    > (
+    >     year int,
+    >     month int,
+    >     quantity_sum int
+    > ) 
+    > stored as orc;
+OK
+Time taken: 0.063 seconds
+hive> from sales_order_data_orc insert overwrite table table_1 select YEAR_ID, MONTH_ID, sum(QUANTITYORDERED) GROUP BY YEAR_ID, MONTH_ID;
+Query ID = abc_20230517125219_79198063-1178-40db-8442-7046a57b6b47
+Total jobs = 2
+Launching Job 1 out of 2
+Number of reduce tasks not specified. Estimated from input data size: 1
+In order to change the average load for a reducer (in bytes):
+  set hive.exec.reducers.bytes.per.reducer=<number>
+In order to limit the maximum number of reducers:
+  set hive.exec.reducers.max=<number>
+In order to set a constant number of reducers:
+  set mapreduce.job.reduces=<number>
+Starting Job = job_1684307876910_0002, Tracking URL = http://de84852935c3:8088/proxy/application_1684307876910_0002/
+Kill Command = /usr/local/hadoop/bin/mapred job  -kill job_1684307876910_0002
+Hadoop job information for Stage-1: number of mappers: 1; number of reducers: 1
+2023-05-17 12:52:28,778 Stage-1 map = 0%,  reduce = 0%
+2023-05-17 12:52:35,933 Stage-1 map = 100%,  reduce = 0%, Cumulative CPU 2.29 sec
+2023-05-17 12:52:43,121 Stage-1 map = 100%,  reduce = 100%, Cumulative CPU 6.27 sec
+MapReduce Total cumulative CPU time: 6 seconds 270 msec
+Ended Job = job_1684307876910_0002
+Loading data to table hive_db.table_1
+Launching Job 2 out of 2
+Number of reduce tasks determined at compile time: 1
+In order to change the average load for a reducer (in bytes):
+  set hive.exec.reducers.bytes.per.reducer=<number>
+In order to limit the maximum number of reducers:
+  set hive.exec.reducers.max=<number>
+In order to set a constant number of reducers:
+  set mapreduce.job.reduces=<number>
+Starting Job = job_1684307876910_0003, Tracking URL = http://de84852935c3:8088/proxy/application_1684307876910_0003/
+Kill Command = /usr/local/hadoop/bin/mapred job  -kill job_1684307876910_0003
+Hadoop job information for Stage-3: number of mappers: 1; number of reducers: 1
+2023-05-17 12:52:56,871 Stage-3 map = 0%,  reduce = 0%
+2023-05-17 12:53:03,118 Stage-3 map = 100%,  reduce = 0%, Cumulative CPU 1.71 sec
+2023-05-17 12:53:09,266 Stage-3 map = 100%,  reduce = 100%, Cumulative CPU 3.94 sec
+MapReduce Total cumulative CPU time: 3 seconds 940 msec
+Ended Job = job_1684307876910_0003
+MapReduce Jobs Launched: 
+Stage-Stage-1: Map: 1  Reduce: 1   Cumulative CPU: 6.27 sec   HDFS Read: 40258 HDFS Write: 911 SUCCESS
+Stage-Stage-3: Map: 1  Reduce: 1   Cumulative CPU: 3.94 sec   HDFS Read: 10849 HDFS Write: 427 SUCCESS
+Total MapReduce CPU Time Spent: 10 seconds 210 msec
+OK
+Time taken: 52.468 seconds
+hive> create table table_2
+    > (
+    >     year int,
+    >     quantity int
+    > ) 
+    > stored as orc;
+OK
+Time taken: 0.079 seconds
+hive> from table_1 insert overwrite table table_2 select year, max(quantity_sum) GROUP BY year;
+Query ID = abc_20230517125342_c5a158b2-0c1c-4526-895a-7f3bfd8648e7
+Total jobs = 2
+Launching Job 1 out of 2
+Number of reduce tasks not specified. Estimated from input data size: 1
+In order to change the average load for a reducer (in bytes):
+  set hive.exec.reducers.bytes.per.reducer=<number>
+In order to limit the maximum number of reducers:
+  set hive.exec.reducers.max=<number>
+In order to set a constant number of reducers:
+  set mapreduce.job.reduces=<number>
+Starting Job = job_1684307876910_0004, Tracking URL = http://de84852935c3:8088/proxy/application_1684307876910_0004/
+Kill Command = /usr/local/hadoop/bin/mapred job  -kill job_1684307876910_0004
+Hadoop job information for Stage-1: number of mappers: 1; number of reducers: 1
+2023-05-17 12:53:50,836 Stage-1 map = 0%,  reduce = 0%
+2023-05-17 12:53:57,989 Stage-1 map = 100%,  reduce = 0%, Cumulative CPU 2.28 sec
+2023-05-17 12:54:04,124 Stage-1 map = 100%,  reduce = 100%, Cumulative CPU 5.62 sec
+MapReduce Total cumulative CPU time: 5 seconds 620 msec
+Ended Job = job_1684307876910_0004
+Loading data to table hive_db.table_2
+Launching Job 2 out of 2
+Number of reduce tasks determined at compile time: 1
+In order to change the average load for a reducer (in bytes):
+  set hive.exec.reducers.bytes.per.reducer=<number>
+In order to limit the maximum number of reducers:
+  set hive.exec.reducers.max=<number>
+In order to set a constant number of reducers:
+  set mapreduce.job.reduces=<number>
+Starting Job = job_1684307876910_0005, Tracking URL = http://de84852935c3:8088/proxy/application_1684307876910_0005/
+Kill Command = /usr/local/hadoop/bin/mapred job  -kill job_1684307876910_0005
+Hadoop job information for Stage-3: number of mappers: 1; number of reducers: 1
+2023-05-17 12:54:18,385 Stage-3 map = 0%,  reduce = 0%
+2023-05-17 12:54:25,537 Stage-3 map = 100%,  reduce = 0%, Cumulative CPU 1.83 sec
+2023-05-17 12:54:30,648 Stage-3 map = 100%,  reduce = 100%, Cumulative CPU 4.31 sec
+MapReduce Total cumulative CPU time: 4 seconds 310 msec
+Ended Job = job_1684307876910_0005
+MapReduce Jobs Launched: 
+Stage-Stage-1: Map: 1  Reduce: 1   Cumulative CPU: 5.62 sec   HDFS Read: 15227 HDFS Write: 569 SUCCESS
+Stage-Stage-3: Map: 1  Reduce: 1   Cumulative CPU: 4.31 sec   HDFS Read: 9814 HDFS Write: 196 SUCCESS
+Total MapReduce CPU Time Spent: 9 seconds 930 msec
+OK
+Time taken: 50.088 seconds
+hive> SELECT year, month, quantity_sum FROM table_1 u INNER JOIN table_2 l ON u.quantity_sum = l.quantity;
+FAILED: SemanticException Column year Found in more than One Tables/Subqueries
+hive> SELECT year, month, quantity_sum FROM table_1 u INNER JOIN table_2 l ON u.quantity_sum = l.quantity;
+FAILED: SemanticException Column year Found in more than One Tables/Subqueries
+hive>  SELECT u.year, u.month, u.quantity_sum FROM table_1 u INNER JOIN table_2 l ON u.quantity_sum = l.quantity ORDER BY u.year;
+Query ID = abc_20230517125522_c2404fac-5e23-4e05-a5ae-a12f73a99512
+Total jobs = 1
+SLF4J: Found binding in [jar:file:/usr/local/apache-hive-3.1.2-bin/lib/log4j-slf4j-impl-2.10.0.jar!/org/slf4j/impl/StaticLoggerBinder.class]SLF4J: See http://www.slf4j.org/codes.html#multiple_bindings for an explanation.
+SLF4J: Actual binding is of type [org.apache.logging.slf4j.Log4jLoggerFactory]
+
+2023-05-17 12:55:33     Uploaded 1 File to: file:/tmp/abc/c423fb4e-fd50-4ac3-b891-5e072396eaf6/hive_2023-05-17_12-55-22_958_905429133498843428-1/-local-10005/HashTable-Stage-2/MapJoin-mapfile01--.hashtable (320 bytes)
+Execution completed successfully
+MapredLocal task succeeded
+Launching Job 1 out of 1
+Number of reduce tasks determined at compile time: 1
+In order to change the average load for a reducer (in bytes):
+  set hive.exec.reducers.bytes.per.reducer=<number>
+In order to limit the maximum number of reducers:
+  set hive.exec.reducers.max=<number>
+In order to set a constant number of reducers:
+  set mapreduce.job.reduces=<number>
+Starting Job = job_1684307876910_0006, Tracking URL = http://de84852935c3:8088/proxy/application_1684307876910_0006/
+Kill Command = /usr/local/hadoop/bin/mapred job  -kill job_1684307876910_0006
+Hadoop job information for Stage-2: number of mappers: 1; number of reducers: 1
+2023-05-17 12:55:44,155 Stage-2 map = 0%,  reduce = 0%
+2023-05-17 12:55:53,355 Stage-2 map = 100%,  reduce = 0%, Cumulative CPU 17.27 sec
+2023-05-17 12:55:58,475 Stage-2 map = 100%,  reduce = 100%, Cumulative CPU 19.62 sec
+MapReduce Total cumulative CPU time: 19 seconds 620 msec
+Ended Job = job_1684307876910_0006
+MapReduce Jobs Launched: 
+Stage-Stage-2: Map: 1  Reduce: 1   Cumulative CPU: 19.62 sec   HDFS Read: 17323 HDFS Write: 163 SUCCESS
+Total MapReduce CPU Time Spent: 19 seconds 620 msec
+OK
+2003    11      10179
+2004    11      10678
+2005    5       4357
+Time taken: 37.615 seconds, Fetched: 3 row(s)
+
